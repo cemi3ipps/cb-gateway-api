@@ -1,0 +1,15 @@
+{
+  "name": "cb-gateway-api",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "node-forge": "^1.3.3"
+  }
+}
