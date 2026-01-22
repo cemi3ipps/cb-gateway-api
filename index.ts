@@ -7,10 +7,9 @@ import {
   generateSignature,
 } from "./libs"
 import {
-  decrypt as aesDecrypt,
   encrypt as aesEncrypt,
+  decryptFullCiphertext,
 } from "./libs/aes-256-gcm"
-import { encrypt as rsaEncrypt } from "./libs/rsa"
 
 const baseUrl =
   env.ENV !== "production"
@@ -21,6 +20,7 @@ const baseUrl =
 const rsaPublicKey = env.RSA_PUBLIC_KEY
 
 /*
+  example endpoints:
   /v1/direct_credit/transaction/account/verify
   /v1/direct_credit/transaction/account/confirm
   /account/balance/inquiry
@@ -33,17 +33,25 @@ const apiEndpoint = "/account/balance/inquiry"
 const reqRefNo = generateRandomString(6)
 const apiPayload = { reqRefNo: reqRefNo }
 
-// e2ee payload
+console.log("\nAPI Body: ", apiPayload)
 
+// e2ee payload
+// The inner payload contains the target API endpoint and the base64-encoded business payload.
+// This ensures that the gateway knows where to route the request after decryption.
 const innerPayload = {
   url: apiEndpoint,
   base64: Buffer.from(JSON.stringify(apiPayload)).toString("base64"),
 }
 
+console.log("\nInner Payload: ", innerPayload)
+
 // prepare encrypted payload
+// 1. Generate a random 32-byte AES key for this session/request.
 const aesKey = crypto.randomBytes(32)
+// 2. Use the request reference number (reqRefNo) as the Initialization Vector (IV) source.
 const rawIv = Buffer.from(reqRefNo, "utf8")
 
+// 3. Encrypt the inner payload using AES-256-GCM.
 const { fullCiphertext, iv, authTag } = aesEncrypt(
   JSON.stringify(innerPayload),
   aesKey,
@@ -51,6 +59,8 @@ const { fullCiphertext, iv, authTag } = aesEncrypt(
 )
 
 // rsa encryption
+// 4. Encrypt the AES key using the Gateway's RSA Public Key.
+// This is known as "Key Wrapping". Only the Gateway (holding the Private Key) can decrypt this to get the AES key.
 const pubKey = convertToPem(rsaPublicKey)
 // wrapped aes key
 const wk = crypto.publicEncrypt(
@@ -58,16 +68,23 @@ const wk = crypto.publicEncrypt(
   aesKey,
 )
 
+// 5. Construct the final request body.
+// - wk: The RSA-encrypted AES key (Base64).
+// - payload: The AES-encrypted data (Base64).
+// - reqRefNo: The reference number used for tracking and IV generation.
 const requestBody = {
   wk: wk.toString("base64"),
   payload: Buffer.from(fullCiphertext, "hex").toString("base64"),
   reqRefNo,
 }
 
-// make request
+console.log("\nFinal Request Body: ", requestBody)
 
+// make request
+// Headers include authentication and integrity checks.
 const headers = {
   "Content-Type": "application/json;charset=UTF-8",
+  // X-Signature: HMAC-SHA256 signature of Client ID, Secret, and Nonce.
   "X-Signature": generateSignature({
     cu: env.CB_CLIENT_ID,
     sc: env.CB_SECRET,
@@ -96,16 +113,19 @@ const res = (await response.json()) as {
   response: string
 }
 
+// Check for business logic errors from the gateway
 if (res.respCode !== "0000") {
   throw new Error(`Endpoint Request failed: ${JSON.stringify(res, null, 2)}`)
 }
 
-// decrypt response
+// Decrypt the response
+// The gateway responds with an encrypted payload (res.response).
+// We decrypt it using:
+// 1. The SAME AES key that we generated and sent in the request (session key).
+// 2. The response reference number (respRefNo) as the IV.
+const rawResponse = Buffer.from(res.response, "base64")
 const decryptIv = Buffer.from(res.respRefNo, "utf8")
-const ciphertext = Buffer.from(res.response, "base64")
-const decrypted = aesDecrypt(
-  { ciphertext, iv: decryptIv, authTag: Buffer.from(authTag, "hex") },
-  aesKey,
-)
 
-console.log(decrypted)
+const decrypted = decryptFullCiphertext(rawResponse, decryptIv, aesKey)
+
+console.log("\nDecrypted response: ", JSON.parse(decrypted.toString("utf8")))

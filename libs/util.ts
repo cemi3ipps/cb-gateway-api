@@ -29,6 +29,13 @@ export function isValidPEM(key: string): boolean {
   return pemPattern.test(trimmedKey)
 }
 
+/**
+ * Generates a traditional hex-based request ID.
+ *
+ * @param length - The length of the ID to generate (default: 6)
+ * @param isUpper - Whether to return uppercase hex (default: true)
+ * @returns A random hex string
+ */
 export function getTraditionalRequestId(
   length: number = 6,
   isUpper: boolean = true,
@@ -38,6 +45,13 @@ export function getTraditionalRequestId(
   return isUpper ? reqId.toUpperCase() : reqId
 }
 
+/**
+ * Generates a request ID safe for Corporate Bank usage (base64url based).
+ * Strips special characters like '-', '/', and '_' to ensure compatibility.
+ *
+ * @param length - The length of the ID to generate (default: 6)
+ * @returns A random URL-safe string
+ */
 export function getCbRequestId(length: number = 6): string {
   const randByte = crypto.randomBytes(length)
   let reqId = randByte.toString("base64url")
@@ -46,6 +60,14 @@ export function getCbRequestId(length: number = 6): string {
   return reqId.slice(-length)
 }
 
+/**
+ * Converts a raw base64 key string into PEM format.
+ * Wraps the base64 string at 64 characters per line and adds appropriate headers/footers.
+ *
+ * @param base64 - The raw base64 key string
+ * @param type - The key type: "PUBLIC_KEY" or "PRIVATE_KEY" (default: "PUBLIC_KEY")
+ * @returns The key in PEM format
+ */
 export function convertToPem(
   base64: string,
   type: "PUBLIC_KEY" | "PRIVATE_KEY" = "PUBLIC_KEY",
@@ -99,6 +121,12 @@ export function deriveRsaPublicKey(privateKeyPem: string): string {
   }
 }
 
+/**
+ * Generates a random uppercase hex string.
+ *
+ * @param length - The length of the string to generate (default: 8)
+ * @returns A random uppercase hex string
+ */
 export function generateRandomString(length: number = 8): string {
   return crypto
     .randomBytes(length)
