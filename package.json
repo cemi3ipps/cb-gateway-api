@@ -10,6 +10,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@paralleldrive/cuid2": "^3.3.0",
     "node-forge": "^1.3.3"
   }
 }

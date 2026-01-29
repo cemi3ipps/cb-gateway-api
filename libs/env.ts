@@ -2,7 +2,7 @@ import { TypeCompiler } from "@sinclair/typebox/compiler"
 import { t } from "elysia"
 
 const structure = t.Object({
-  ENV: t.String(),
+  NODE_ENV: t.String(),
   CB_SERVICE: t.String(),
   CB_CLIENT_ID: t.String(),
   CB_SECRET: t.String(),

@@ -1,3 +1,4 @@
+import { createId } from "@paralleldrive/cuid2"
 import crypto from "crypto"
 
 import {
@@ -12,7 +13,7 @@ import {
 } from "./libs/aes-256-gcm"
 
 const baseUrl =
-  env.ENV !== "production"
+  env.NODE_ENV !== "production"
     ? "https://va-openapi-uat2.ipps.co.th/corp-gateway/v1/gateway/"
     : "https://va-openapi.ipps.co.th/corp-gateway/v1/gateway/"
 
@@ -23,15 +24,31 @@ const rsaPublicKey = env.RSA_PUBLIC_KEY
   example endpoints:
   /v1/direct_credit/transaction/account/verify
   /v1/direct_credit/transaction/account/confirm
+  
   /account/balance/inquiry
   /account/transaction
+
+  /v1/direct_credit/transaction/payee/verify
+  /v1/direct_credit/transaction/payee/confirm
+  /v1/direct_credit/payee/inquiry
+  /v1/direct_credit/payee/add
+  /v1/direct_credit/payee/deregister
 */
 
 // api endpoint
-const apiEndpoint = "/account/balance/inquiry"
+const apiEndpoint = "/v1/direct_credit/transaction/account/verify"
 // api payload
 const reqRefNo = generateRandomString(6)
-const apiPayload = { reqRefNo: reqRefNo }
+
+// const apiPayload = { reqRefNo: reqRefNo }
+const apiPayload = {
+  toBankBicCode: "IPPSTHBL",
+  toAccountNo: "120111220003699",
+  trnAmount: 15,
+  clientRequestNo: createId().slice(0, 20), // max 20 characters allowed
+  // referenceMessageOut: null, // optional nullable string
+  reqRefNo: reqRefNo,
+}
 
 console.log("\nAPI Body: ", apiPayload)
 
@@ -117,6 +134,8 @@ const res = (await response.json()) as {
 if (res.respCode !== "0000") {
   throw new Error(`Endpoint Request failed: ${JSON.stringify(res, null, 2)}`)
 }
+
+console.log("\nResponse: ", res)
 
 // Decrypt the response
 // The gateway responds with an encrypted payload (res.response).
