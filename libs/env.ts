@@ -9,6 +9,8 @@ const structure = t.Object({
   CB_CLIENT: t.String(),
   CB_ACCESS_TOKEN: t.String(),
   RSA_PUBLIC_KEY: t.String(),
+  TO_BANK_BIC: t.String(),
+  TO_BANK_ACC: t.String(),
 })
 
 const compiler = TypeCompiler.Compile(structure)

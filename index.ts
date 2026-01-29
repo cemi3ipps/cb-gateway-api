@@ -42,8 +42,8 @@ const reqRefNo = generateRandomString(6)
 
 // const apiPayload = { reqRefNo: reqRefNo }
 const apiPayload = {
-  toBankBicCode: "IPPSTHBL",
-  toAccountNo: "120111220003699",
+  toBankBicCode: env.TO_BANK_BIC,
+  toAccountNo: env.TO_BANK_ACC,
   trnAmount: 15,
   clientRequestNo: createId().slice(0, 20), // max 20 characters allowed
   // referenceMessageOut: null, // optional nullable string
